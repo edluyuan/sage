@@ -80,14 +80,20 @@ def pipeline(args):
 
     # ---------------------- Create Dataset ----------------------
     env = gym.make(args.task.env_name)
+
+    env_dataset = env.get_dataset()
+    # preprocess actions !
+    env_dataset['actions'] = np.arctanh(np.clip(env_dataset['actions'], -0.999, 0.999))
+
+     # normalize rewards
     planner_dataset = DV_D4RLMuJoCoSeqDataset(
-        env.get_dataset(), horizon=args.task.planner_horizon, discount=args.discount, 
+        env_dataset, horizon=args.task.planner_horizon, discount=args.discount, 
         stride=args.task.stride, center_mapping=(args.guidance_type!="cfg"),
         terminal_penalty=args.terminal_penalty,
         full_traj_bonus=args.full_traj_bonus
     )
     policy_dataset = DV_D4RLMuJoCoSeqDataset(
-        env.get_dataset(), horizon=args.task.planner_horizon, discount=args.discount, 
+        env_dataset, horizon=args.task.planner_horizon, discount=args.discount, 
         stride=args.task.stride, center_mapping=(args.guidance_type!="cfg"),
         terminal_penalty=args.terminal_penalty,
         full_traj_bonus=args.full_traj_bonus
@@ -416,6 +422,7 @@ def pipeline(args):
 
         env_eval = gym.vector.make(args.task.env_name, args.num_envs)
         normalizer = planner_dataset.get_normalizer()
+        normalizer_action = normalizer["action"]
         episode_rewards = []
         
         for i in range(args.num_episodes):
@@ -499,13 +506,20 @@ def pipeline(args):
                                 condition_cfg=torch.cat([obs_policy, next_obs_policy], dim=-1), w_cfg=1.0,
                                 use_ema=args.policy_use_ema, temperature=args.policy_temperature)
                             act = act.cpu().numpy()
+                            act = normalizer_action.unnormalize(act)
+                            act = np.tanh(act)
                     else:
                         # inverse dynamic
                         with torch.no_grad():
                             act = invdyn.predict(obs, traj[:, 1, :]).cpu().numpy()
+                            act = normalizer_action.unnormalize(act)
+                            act = np.tanh(act)
                 else:
                     act = traj[:, 0, obs_dim:]
                     act = act.cpu().numpy()
+                    act = normalizer_action.unnormalize(act)
+                    act = np.tanh(act)
+
                     
                 # step
                 obs, rew, done, info = env_eval.step(act)
