@@ -30,6 +30,9 @@ from typing import Optional
 from dataclasses import dataclass
 import random
 
+
+from sag import MLP, Encoder, ACTransformer, Stats, compute_latent_stats
+
 class MLP(nn.Module):
     def __init__(self, in_dim, out_dim, hidden=512, layers=3, act=nn.GELU):
         super().__init__()

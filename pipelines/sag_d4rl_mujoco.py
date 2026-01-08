@@ -25,10 +25,14 @@ from tqdm import tqdm
 from omegaconf import OmegaConf
 
 
-#from gates.sjepa_gate import SJEPAGate, GatingConfig
 
 from typing import Optional
 from dataclasses import dataclass
+
+
+from sag import MLP, Encoder, ACTransformer, Stats, compute_latent_stats, GatingConfig, SJEPAGate
+
+
 
 class MLP(nn.Module):
     def __init__(self, in_dim, out_dim, hidden=512, layers=3, act=nn.GELU):

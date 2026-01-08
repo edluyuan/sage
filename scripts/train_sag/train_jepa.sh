@@ -87,6 +87,6 @@ for ENV_ID in "${ENVS[@]}"; do
       --wandb_run "${RUN_NAME}" \
       --wandb_group "${GROUP}" \
       --wandb_mode "${WANDB_MODE}" \
-      --wandb_tags d4rl s-jepa
+      --wandb_tags d4rl jepa
   done
 done

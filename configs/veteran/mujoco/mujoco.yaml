@@ -17,7 +17,7 @@ guidance_type: MCSS # cfg, cg, MCSS
 # For Planner
 planner_net: transformer # transformer, unet
 # Separate state and action
-pipeline_type: separate # separate, joint
+pipeline_type: joint # separate, joint
 # Rebase_policy position
 rebase_policy: false
 

@@ -14,5 +14,5 @@ python pipelines/antmaze_baseline.py \
     task=$task \
     enable_wandb=1 \
     +enable_jepa_gate=1 \
-    +gate_top_p=1.0
+    +gate_top_p=0.8
 done

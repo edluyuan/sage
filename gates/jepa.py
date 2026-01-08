@@ -22,12 +22,6 @@ import d4rl
 
 def load_d4rl_dataset(env_id: str):
 
-    """try:
-        import gym
-    except Exception:
-        import gymnasium as gym  # type: ignore
-    import d4rl  # noqa: F401"""
-
     env = gym.make(env_id)
     ds = env.get_dataset() if hasattr(env, "get_dataset") else __import__('d4rl').qlearning_dataset(env)
 
