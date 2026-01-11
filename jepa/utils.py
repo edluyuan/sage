@@ -1,4 +1,4 @@
-# sjepa_lib.py
+# utils.py
 import os
 import math
 import random
