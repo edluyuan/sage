@@ -80,30 +80,24 @@ def pipeline(args):
 
     # ---------------------- Create Dataset ----------------------
     env = gym.make(args.task.env_name)
-
-    env_dataset = env.get_dataset()
-    # preprocess actions !
-    env_dataset['actions'] = np.arctanh(np.clip(env_dataset['actions'], -0.999, 0.999))
-
-     # normalize rewards
     planner_dataset = DV_D4RLMuJoCoSeqDataset(
-        env_dataset, horizon=args.task.planner_horizon, discount=args.discount, 
+        env.get_dataset(), horizon=args.task.planner_horizon, discount=args.discount, 
         stride=args.task.stride, center_mapping=(args.guidance_type!="cfg"),
         terminal_penalty=args.terminal_penalty,
         full_traj_bonus=args.full_traj_bonus
     )
     policy_dataset = DV_D4RLMuJoCoSeqDataset(
-        env_dataset, horizon=args.task.planner_horizon, discount=args.discount, 
+        env.get_dataset(), horizon=args.task.planner_horizon, discount=args.discount, 
         stride=args.task.stride, center_mapping=(args.guidance_type!="cfg"),
         terminal_penalty=args.terminal_penalty,
         full_traj_bonus=args.full_traj_bonus
     )
     planner_dataloader = DataLoader(
-        planner_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0, pin_memory=True, drop_last=True)
+        planner_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True, drop_last=True)
     obs_dim, act_dim = planner_dataset.o_dim, planner_dataset.a_dim
     
     policy_dataloader = DataLoader(
-        policy_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0, pin_memory=True, drop_last=True)
+        policy_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True, drop_last=True)
     obs_dim, act_dim = planner_dataset.o_dim, planner_dataset.a_dim
 
     planner_dim = obs_dim if args.pipeline_type=="separate" else obs_dim + act_dim
@@ -317,7 +311,7 @@ def pipeline(args):
         MAX_STEPS = 1_000_000
         
         dataset = D4RLMuJoCoTDDataset(d4rl.qlearning_dataset(env))
-        td_dataloader = DataLoader(dataset, batch_size=256, shuffle=True, num_workers=0, persistent_workers=True)
+        td_dataloader = DataLoader(dataset, batch_size=256, shuffle=True, num_workers=4, persistent_workers=True)
         obs_dim, act_dim = dataset.o_dim, dataset.a_dim
         
         EV = IDQLVNet(obs_dim, hidden_dim=256).to(args.device)
@@ -363,199 +357,10 @@ def pipeline(args):
             n_gradient_step += 1
             if n_gradient_step > 1_000_000:
                 break
-    
-    # ---------------------- Inference ----------------------
-    elif args.mode == "inference":
-        
-        if args.guidance_type=="MCSS":
-            # load planner
-            planner.load(save_path + f"planner_ckpt_{args.planner_ckpt}.pt")
-            planner.eval()
-            # load critic
-            critic_ckpt = torch.load(save_path + f"critic_ckpt_{args.critic_ckpt}.pt")
-            critic.load_state_dict(critic_ckpt["critic"])
-            critic.eval()
-            # load policy
-            if args.pipeline_type == "separate":
-                if args.use_diffusion_invdyn:
-                    policy.load(save_path + f"policy_ckpt_{args.policy_ckpt}.pt")
-                    policy.eval()
-                else:
-                    invdyn.load(save_path + f"invdyn_ckpt_{args.invdyn_ckpt}.pt")
-                    invdyn.eval()
-        
-        elif args.guidance_type=="cfg":
-            # load planner
-            planner.load(save_path + f"planner_ckpt_{args.planner_ckpt}.pt")
-            planner.eval()
-            # load policy
-            if args.pipeline_type == "separate":
-                if args.use_diffusion_invdyn:
-                    policy.load(save_path + f"policy_ckpt_{args.policy_ckpt}.pt")
-                    policy.eval()
-                else:
-                    invdyn.load(save_path + f"invdyn_ckpt_{args.invdyn_ckpt}.pt")
-                    invdyn.eval()
-            
-        elif args.guidance_type=="cg":
-            # load planner
-            planner.load(save_path + f"planner_ckpt_{args.planner_ckpt}.pt")
-            # load classifier
-            planner.classifier.load(save_path + f"classifier_ckpt_{args.planner_ckpt}.pt")
-            planner.eval()
-            # load policy
-            if args.pipeline_type == "separate":
-                if args.use_diffusion_invdyn:
-                    policy.load(save_path + f"policy_ckpt_{args.policy_ckpt}.pt")
-                    policy.eval()
-                else:
-                    invdyn.load(save_path + f"invdyn_ckpt_{args.invdyn_ckpt}.pt")
-                    invdyn.eval()
-                    
-        
-        MAX_VALUE_STEPS = 1_000_000
-        
-        EV = IDQLVNet(obs_dim, hidden_dim=256).to(args.device)
-        ev_ckpt = torch.load(save_path + f"EV_ckpt_{MAX_VALUE_STEPS}.pt")
-        EV.load_state_dict(ev_ckpt["ev"])
-        EV.eval()
-
-        env_eval = gym.vector.make(args.task.env_name, args.num_envs)
-        normalizer = planner_dataset.get_normalizer()
-        normalizer_action = normalizer["action"]
-        episode_rewards = []
-        
-        for i in range(args.num_episodes):
-            obs, ep_reward, cum_done, t = env_eval.reset(), 0., 0., 0
-            while not np.all(cum_done) and t < args.task.max_path_length + 1:
-                
-                # 1) generate plan
-                if args.guidance_type == "MCSS":
-                    planner_prior = torch.zeros((args.num_envs * args.planner_num_candidates, args.task.planner_horizon, planner_dim), device=args.device)
-                    
-                    obs = torch.tensor(normalizer.normalize(obs), device=args.device, dtype=torch.float32)
-                    obs_repeat = obs.unsqueeze(1).repeat(1, args.planner_num_candidates, 1).view(-1, obs_dim)
-
-                    # sample trajectories
-                    planner_prior[:, 0, :obs_dim] = obs_repeat
-                    traj, log = planner.sample(
-                        planner_prior, solver=args.planner_solver,
-                        n_samples=args.num_envs * args.planner_num_candidates, sample_steps=args.planner_sampling_steps, use_ema=args.planner_use_ema,
-                        condition_cfg=None, w_cfg=1.0, temperature=args.task.planner_temperature)
-                    
-                    # resample
-                    with torch.no_grad():
-                        value_td_ev = EV(traj)[:, 1:]
-                        value = value_td_ev.sum(dim=1)
-                        value = value.view(args.num_envs, args.planner_num_candidates)
-                        idx = torch.argmax(value, -1)
-                        traj = traj.reshape(args.num_envs, args.planner_num_candidates, args.task.planner_horizon, planner_dim)
-                        traj = traj[torch.arange(args.num_envs), idx]
-                
-                elif args.guidance_type == "cfg":
-                    planner_prior = torch.zeros((args.num_envs, args.task.planner_horizon, planner_dim), device=args.device)
-                    condition = torch.ones((args.num_envs, 1), device=args.device) * args.task.planner_target_return
-                    
-                    obs = torch.tensor(normalizer.normalize(obs), device=args.device, dtype=torch.float32)
-
-                    # sample trajectories
-                    planner_prior[:, 0, :obs_dim] = obs
-                    traj, log = planner.sample(
-                        planner_prior, solver=args.planner_solver,
-                        n_samples=args.num_envs, sample_steps=args.planner_sampling_steps, use_ema=args.planner_use_ema,
-                        condition_cfg=condition, w_cfg=args.task.planner_w_cfg, temperature=args.task.planner_temperature)
-                
-                elif args.guidance_type == "cg":
-                    planner_prior = torch.zeros((args.num_envs * args.planner_num_candidates, args.task.planner_horizon, planner_dim), device=args.device)
-                    
-                    obs = torch.tensor(normalizer.normalize(obs), device=args.device, dtype=torch.float32)
-                    obs_repeat = obs.unsqueeze(1).repeat(1, args.planner_num_candidates, 1).view(-1, obs_dim)
-                    
-                    planner_prior[:, 0, :obs_dim] = obs_repeat
-                    traj, log = planner.sample(
-                        planner_prior, solver=args.planner_solver,
-                        n_samples=args.num_envs * args.planner_num_candidates, sample_steps=args.planner_sampling_steps, use_ema=args.planner_use_ema,
-                        w_cg=args.task.planner_w_cfg, temperature=args.task.planner_temperature)
-                    
-                    # resample
-                    with torch.no_grad():
-                        logp = log["log_p"].view(args.num_envs, args.planner_num_candidates)
-                        idx = torch.argmax(logp, -1)
-                        traj = traj.reshape(args.num_envs, args.planner_num_candidates, args.task.planner_horizon, planner_dim)
-                        traj = traj[torch.arange(args.num_envs), idx]
-
-                # 2) generate action
-                if args.pipeline_type == "separate":
-                    if args.use_diffusion_invdyn:
-                        policy_prior = torch.zeros((args.num_envs, act_dim), device=args.device)
-                        with torch.no_grad():
-                            next_obs_plan = traj[:, 1, :]
-                            obs_policy = obs.clone()
-                            next_obs_policy = next_obs_plan.clone()
-                            
-                            
-                            if args.rebase_policy:
-                                next_obs_policy[:, :2] -= obs_policy[:, :2]
-                                obs_policy[:, :2] = 0
-                            
-                            act, log = policy.sample(
-                                policy_prior,
-                                solver=args.policy_solver,
-                                n_samples=args.num_envs,
-                                sample_steps=args.policy_sampling_steps,
-                                condition_cfg=torch.cat([obs_policy, next_obs_policy], dim=-1), w_cfg=1.0,
-                                use_ema=args.policy_use_ema, temperature=args.policy_temperature)
-                            act = act.cpu().numpy()
-                            act = normalizer_action.unnormalize(act)
-                            act = np.tanh(act)
-                    else:
-                        # inverse dynamic
-                        with torch.no_grad():
-                            act = invdyn.predict(obs, traj[:, 1, :]).cpu().numpy()
-                            act = normalizer_action.unnormalize(act)
-                            act = np.tanh(act)
-                else:
-                    act = traj[:, 0, obs_dim:]
-                    act = act.cpu().numpy()
-                    act = normalizer_action.unnormalize(act)
-                    act = np.tanh(act)
-
-                    
-                # step
-                obs, rew, done, info = env_eval.step(act)
-
-                t += 1
-                cum_done = done if cum_done is None else np.logical_or(cum_done, done)
-                ep_reward += (rew * (1 - cum_done)) if t < args.task.max_path_length else rew
-                # print(f'[t={t}] xy: {np.around(obs[:, :2], 2)}')
-                print(f'[t={t}] rew: {np.around((rew * (1 - cum_done)), 2)}')
-
-            episode_rewards.append(ep_reward)
-
-        episode_rewards = [list(map(lambda x: env.get_normalized_score(x), r)) for r in episode_rewards]
-        episode_rewards = np.array(episode_rewards).reshape(-1) * 100
-        mean = np.mean(episode_rewards)
-        err = np.std(episode_rewards) / np.sqrt(len(episode_rewards))
-        print(mean, err)
-
-        if args.enable_wandb:
-            wandb.log({'Mean Reward': mean, 'Error': err})
-            wandb.finish()
-
         
     else:
         raise ValueError(f"Invalid mode: {args.mode}")
 
 
 if __name__ == "__main__":
-    try:
-        pipeline()
-    finally:
-        import os, torch
-        try: torch.cuda.synchronize()
-        except Exception: pass
-        os._exit(0)
-
-
-#if __name__ == "__main__":
-#pipeline()
+    pipeline()
