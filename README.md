@@ -1,5 +1,5 @@
-# SAG
-Diffusion Planners with Self-Supervised Action Gating
+# SAGE
+Improving Diffusion Planners by Self-Supervised Action Gating with Energies
 
 
 
@@ -8,8 +8,8 @@ Let's start with python 3.9. It's recommend to create a `conda` env:
 
 ### Create a new conda environment 
 ```shell
-conda create -n sag python=3.9 mesalib glew glfw pip=23 setuptools=63.2.0 wheel=0.38.4 protobuf=3.20 -c conda-forge -y
-conda activate sag
+conda create -n sage python=3.9 mesalib glew glfw pip=23 setuptools=63.2.0 wheel=0.38.4 protobuf=3.20 -c conda-forge -y
+conda activate sage
 ```
 
 ### Install for MuJoCo Simulator and mujoco-py (Important)
@@ -40,7 +40,7 @@ For PyTorch installation, refer to the official PyTorch setup guide to ensure co
 
 
 ## 💻 Training & Inference
-### Run Diffusion Veteran 
+### Run Base Diffusion 
 We provide a **single script** for easy execution of the training and inference tasksets. You can run the following commands to get started with different environments:
 ```bash
 bash scripts/DV_antmaze_reimp.sh
