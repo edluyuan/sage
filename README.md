@@ -13,6 +13,7 @@ SAGE is an inference-time gating method for diffusion planners. It learns a feas
 - [Training & Inference](#-training--inference)
   - [Training pipeline (3 stages)](#training-pipeline-3-stages)
   - [Inference](#inference)
+-[References](#references)
 
 ---
 
@@ -102,3 +103,14 @@ ENV_ID=halfcheetah-medium-v2 K=10 KEEP_P=0.8 LAM=0.1   bash scripts/sample_sage/
 ```
 
 Note: make sure `ENV_ID` matches the exact D4RL environment string available in your setup.
+
+## References
+
+```bibtex
+@article{lu2025makes,
+  title={What makes a good diffusion planner for decision making?},
+  author={Lu, Haofei and Han, Dongqi and Shen, Yifei and Li, Dongsheng},
+  journal={arXiv preprint arXiv:2503.00535},
+  year={2025}
+}
+```
