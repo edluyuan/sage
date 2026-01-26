@@ -13,8 +13,8 @@ SAGE is an inference-time gating method for diffusion planners. It learns a feas
 - [Training & Inference](#-training--inference)
   - [Training pipeline (3 stages)](#training-pipeline-3-stages)
   - [Inference](#inference)
--[Acknowledgements](#-acknowledgements)
--[References](#-references)
+- [Acknowledgements](#-acknowledgements)
+- [References](#-references)
 
 ---
 
