@@ -107,7 +107,7 @@ Note: make sure `ENV_ID` matches the exact D4RL environment string available in 
 ## References
 
 ```bibtex
-@@inproceedings{lu2025makes,
+@inproceedings{lu2025makes,
   title={What makes a good diffusion planner for decision making?},
   author={Lu, Haofei and Han, Dongqi and Shen, Yifei and Li, Dongsheng},
   journal={The Thirteenth International Conference on Learning Representations},
