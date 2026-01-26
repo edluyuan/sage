@@ -1,18 +1,31 @@
 # SAGE
-Improving Diffusion Planners by Self-Supervised Action Gating with Energies
+### Improving Diffusion Planners by Self-Supervised Action Gating with Energies
 
+SAGE is an inference-time gating method for diffusion planners. It learns a feasibility-style energy from offline data (via JEPA-style representation learning + an action-conditioned predictor), and uses that energy to filter and re-rank candidate trajectories sampled by a base diffusion planner.
 
+---
+
+## Contents
+- [Setup](#-setup)
+  - [Conda environment](#conda-environment)
+  - [MuJoCo + mujoco-py](#mujoco--mujoco-py-important)
+  - [Install dependencies](#install-dependencies)
+- [Training & Inference](#-training--inference)
+  - [Training pipeline (3 stages)](#training-pipeline-3-stages)
+  - [Inference](#inference)
+
+---
 
 ## 🛠️ Setup
 Let's start with python 3.9. It's recommend to create a `conda` env:
 
-### Create a new conda environment 
+### Conda environment 
 ```shell
 conda create -n sage python=3.9 mesalib glew glfw pip=23 setuptools=63.2.0 wheel=0.38.4 protobuf=3.20 -c conda-forge -y
 conda activate sage
 ```
 
-### Install for MuJoCo Simulator and mujoco-py (Important)
+### MuJoCo + mujoco-py (Important)
 Install mujoco following the instruction [here](https://github.com/openai/mujoco-py#install-mujoco).
 
 Alternatively, run the following script for a quick setup:
@@ -40,19 +53,23 @@ For PyTorch installation, refer to the official PyTorch setup guide to ensure co
 
 
 ## 💻 Training & Inference
-### Training pipeline
-The pipeline has **three stages**. Run the scripts and adjust the env vars inside (e.g., `SEEDS`, `ENVS`, `RESULTS_ROOT`, `WANDB_*`, `LR`, etc.) as you need; the default matches the reported value in the paper.
+### Training pipeline (3stages)
+The full pipeline has **three stages**. We provide scripts that run the training needed to reproduce the main results.
 
-1) **Pre-train the encoder**
+You can override environment variables inside the scripts (e.g., `SEEDS`, `ENVS`, `RESULTS_ROOT`, `WANDB_*`, `LR`, etc.). Defaults match the paper.
+
+1) **Pre-train the encoder (JEPA-style)**
 ```bash
 bash scripts/train_sage/pretrain_enc.sh
 ```
-2) **Train the AC predictor**
+
+2) **Train the action-conditioned (AC) predictor**
 ```bash
 bash scripts/train_sage/posttrain_ac.sh
 ```
-3) **Train the base planner (DV, Lu et al., 2025)**
-Pick the domain-specific veteran baseline:
+
+3) **Train the base planner (DV; Lu et al., 2025)**
+Pick the domain-specific Veteran baseline script:
 ```bash
 bash scripts/train_veteran/train_veteran_antmaze.sh
 bash scripts/train_veteran/train_veteran_kitchen.sh
@@ -60,26 +77,28 @@ bash scripts/train_veteran/train_veteran_maze2d.sh
 bash scripts/train_veteran/train_veteran_mujoco.sh
 ```
 
-### Inference
-Use the SAGE sampling scripts in `scripts/sample_sage/`. You can verride variables to suite your need, for example:
-- `ENV_ID` (task), `SEED`
-- SAGE gating: `K`, `KEEP_P`, `LAM`, 
 
-:
+
+### Inference
+Inference scripts live in `scripts/sample_sage/`. You can override variables depending on your experiment:
+
+- **Task / seed:** `ENV_ID`, `SEED`
+- **SAGE gating:** `K` (prefix length), `KEEP_P` (keep ratio), `LAM` (energy weight)
+
+Example commands:
+
 ```bash
 # AntMaze
-ENV_ID=antmaze-large-play-v2 K=10 KEEP_P=0.8 LAM=0.1 \
-	bash scripts/sample_sage/sample_antmaze.sh
+ENV_ID=antmaze-large-play-v2 K=10 KEEP_P=0.8 LAM=0.1   bash scripts/sample_sage/sample_antmaze.sh
 
 # Kitchen
-ENV_ID=kitchen-mixed-v0 K=10 KEEP_P=0.8 LAM=0.1 \
-	bash scripts/sample_sage/sample_kitchen.sh
+ENV_ID=kitchen-mixed-v0 K=10 KEEP_P=0.8 LAM=0.1   bash scripts/sample_sage/sample_kitchen.sh
 
 # Maze2D
-ENV_ID=maze2d-large-v1 K=10 KEEP_P=0.8 LAM=0.1 \
-	bash scripts/sample_sage/sample_maze2d.sh
+ENV_ID=maze2d-large-v1 K=10 KEEP_P=0.8 LAM=0.1   bash scripts/sample_sage/sample_maze2d.sh
 
-# Mujoco
-ENV_ID=halfcheetah-medium--v2 K=10 KEEP_P=0.8 LAM=0.1 \
-	bash scripts/sample_sage/sample_mujoco.sh
+# MuJoCo
+ENV_ID=halfcheetah-medium-v2 K=10 KEEP_P=0.8 LAM=0.1   bash scripts/sample_sage/sample_mujoco.sh
 ```
+
+Note: make sure `ENV_ID` matches the exact D4RL environment string available in your setup.
