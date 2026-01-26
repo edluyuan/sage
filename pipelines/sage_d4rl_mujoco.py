@@ -237,15 +237,12 @@ def pipeline(args):
     EV.load_state_dict(ev_ckpt["ev"])
     EV.eval()
 
-    # ------------------------ SAGE init (ALWAYS ON for inference) ------------------------
-    # You can still set these in config; defaults are chosen to match your earlier code.
+    # ------------------------ SAGE init ------------------------
     sage_prefix = int(getattr(args, "sage_prefix", 4))
     sage_keep_p = float(getattr(args, "sage_keep_p", 0.9))
     sage_lambda = float(getattr(args, "sage_lambda", 1.0))
 
     # Representation note:
-    # - If JEPA/AC were trained on the same *normalized* state representation as planner/policy, keep as-is.
-    # - If not, you should adapt dataset_obs_np / traj states consistently.
     dataset_obs_np = env_dataset["observations"].astype(np.float32)
     dataset_act_np = env_dataset["actions"].astype(np.float32)
 

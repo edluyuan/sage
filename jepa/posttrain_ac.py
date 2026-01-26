@@ -87,13 +87,13 @@ def main():
     state_dim = obs.shape[1]
     act_dim = actions.shape[1]
 
-    # state stats: prefer loading from pretrain
+    # state stats: loading from pretrain for conisistency
     if args.state_stats is not None and os.path.isfile(args.state_stats):
         s_stats = load_stats(args.state_stats)
     else:
         s_stats = Stats.from_array(obs)
 
-    # action stats (optional whitening)
+    # action stats (optional whitening stays with your pretrain setup)
     a_stats = Stats.from_array(actions) if args.action_whiten else None
 
     ds = ACWindowDataset(obs, actions, ep_bounds, window=args.window)
@@ -120,7 +120,7 @@ def main():
         p.requires_grad_(False)
     print(f"[Encoder] Loaded: {args.encoder_ckpt}")
 
-    # latent whitening (recommended)
+    # latent whitening (recommended on for stability in AC training)
     if args.latent_whiten:
         print("[Latent] computing z mean/std for whitening...")
         z_mu, z_std = compute_latent_stats(encoder, obs, s_stats, device)

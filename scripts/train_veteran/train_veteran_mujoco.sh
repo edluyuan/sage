@@ -11,7 +11,7 @@ python pipelines/${model}_d4rl_${pipeline}.py \
     name=$tags \
     mode="train" \
     task=$task \
-    enable_wandb=1
+    enable_wandb=0
 
 experiment="train_expected_value"
 python pipelines/${model}_d4rl_${pipeline}.py \
@@ -19,5 +19,5 @@ python pipelines/${model}_d4rl_${pipeline}.py \
     name=$tags \
     mode="train_expected_value" \
     task=$task \
-    enable_wandb=1
+    enable_wandb=0
 done

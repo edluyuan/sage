@@ -1,7 +1,7 @@
 env_name: "walker2d-medium-v2"
 max_path_length: 1000
 
-planner_horizon: 8
+planner_horizon: 10
 planner_depth: 4
 planner_temperature: 0.3
 seed: 0

@@ -1,7 +1,7 @@
 env_name: "halfcheetah-medium-v2"
 max_path_length: 1000
 
-planner_horizon: 8
+planner_horizon: 10
 planner_depth: 8
 planner_temperature: 1.0
 seed: 0

@@ -474,7 +474,7 @@ def jepa_loss(
 
 
 # -----------------------------
-# AC Transformer (refactored + scaled defaults)
+# AC Transformer 
 # -----------------------------
 
 class ACTinyTransformer(nn.Module):

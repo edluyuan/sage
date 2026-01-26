@@ -40,11 +40,46 @@ For PyTorch installation, refer to the official PyTorch setup guide to ensure co
 
 
 ## 💻 Training & Inference
-### Run Base Diffusion 
-We provide a **single script** for easy execution of the training and inference tasksets. You can run the following commands to get started with different environments:
+### Training pipeline
+The pipeline has **three stages**. Run the scripts and adjust the env vars inside (e.g., `SEEDS`, `ENVS`, `RESULTS_ROOT`, `WANDB_*`, `LR`, etc.) as you need; the default matches the reported value in the paper.
+
+1) **Pre-train the encoder**
 ```bash
-bash scripts/DV_antmaze_reimp.sh
-bash scripts/DV_kitchen_reimp.sh
-bash scripts/DV_maze2d_reimp.sh
-bash scripts/DV_mujoco_reimp.sh
+bash scripts/train_sage/pretrain_enc.sh
+```
+2) **Train the AC predictor**
+```bash
+bash scripts/train_sage/posttrain_ac.sh
+```
+3) **Train the base planner (DV, Lu et al., 2025)**
+Pick the domain-specific veteran baseline:
+```bash
+bash scripts/train_veteran/train_veteran_antmaze.sh
+bash scripts/train_veteran/train_veteran_kitchen.sh
+bash scripts/train_veteran/train_veteran_maze2d.sh
+bash scripts/train_veteran/train_veteran_mujoco.sh
+```
+
+### Inference
+Use the SAGE sampling scripts in `scripts/sample_sage/`. You can verride variables to suite your need, for example:
+- `ENV_ID` (task), `SEED`
+- SAGE gating: `K`, `KEEP_P`, `LAM`, 
+
+:
+```bash
+# AntMaze
+ENV_ID=antmaze-large-play-v2 K=10 KEEP_P=0.8 LAM=0.1 \
+	bash scripts/sample_sage/sample_antmaze.sh
+
+# Kitchen
+ENV_ID=kitchen-mixed-v0 K=10 KEEP_P=0.8 LAM=0.1 \
+	bash scripts/sample_sage/sample_kitchen.sh
+
+# Maze2D
+ENV_ID=maze2d-large-v1 K=10 KEEP_P=0.8 LAM=0.1 \
+	bash scripts/sample_sage/sample_maze2d.sh
+
+# Mujoco
+ENV_ID=halfcheetah-medium--v2 K=10 KEEP_P=0.8 LAM=0.1 \
+	bash scripts/sample_sage/sample_mujoco.sh
 ```

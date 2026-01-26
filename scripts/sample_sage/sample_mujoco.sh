@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PY=${PY:-python}
-MAIN=${MAIN:-pipelines/sag_d4rl_maze2d.py}
+MAIN=${MAIN:-pipelines/sage_d4rl_mujoco.py}
 
 # ------------------ wandb / device ------------------
 PROJECT=${PROJECT:-dv-sage-test-d4rl}
@@ -13,29 +13,28 @@ export WANDB_MODE CUDA_VISIBLE_DEVICES
 
 # ------------------ run spec ------------------
 SEED=${SEED:-42}
-ENV_ID=${ENV_ID:-maze2d-umaze-v1}   # or maze2d-umaze-v1 / maze2d-large-v1
+ENV_ID=${ENV_ID:-halfcheetah-medium-v2}
 
 # IMPORTANT: this matches your artifact layout
-ENCODER_ROOT=${ENCODER_ROOT:-results/sag/pretrain_enc}
-AC_ROOT=${AC_ROOT:-results/sag/posttrain_ac}
+ENCODER_ROOT=${ENCODER_ROOT:-results/sage/pretrain_enc}
+AC_ROOT=${AC_ROOT:-results/sage/posttrain_ac}
 
-# DV ckpt selectors (planner/policy/critic live under save_path for this env)
+# DV ckpt selectors
 PLANNER_CKPT=${PLANNER_CKPT:-latest}
 POLICY_CKPT=${POLICY_CKPT:-latest}
 CRITIC_CKPT=${CRITIC_CKPT:-latest}
+INVDYN_CKPT=${INVDYN_CKPT:-latest}
 
-# ------------------ SAGE params (requested) ------------------
+# ------------------ SAGE params ------------------
 K=${K:-10}
 KEEP_P=${KEEP_P:-0.8}
 LAM=${LAM:-0.1}
-
-# Maze2D: actions are already in [-1,1] (diffusion policy), so typically False
-SAGE_ACTIONS_TANH=${SAGE_ACTIONS_TANH:-false}
+SAGE_ACTIONS_TANH=${SAGE_ACTIONS_TANH:-true}
 
 TAG=${TAG:-dv_sage_test}
 RUN_NAME="${TAG}-${ENV_ID}-seed${SEED}-k${K}-p${KEEP_P}-lam${LAM}"
 
-# ------------------ resolve SAGE artifacts ------------------
+# ------------------ resolve artifacts ------------------
 ENCODER_CKPT="${ENCODER_ROOT}/${ENV_ID}/seed${SEED}/encoder_ema.pt"
 STATE_STATS="${ENCODER_ROOT}/${ENV_ID}/seed${SEED}/state_stats.npz"
 AC_CKPT="${AC_ROOT}/${ENV_ID}/seed${SEED}/ac_predictor_final.pt"
@@ -62,10 +61,12 @@ ${PY} ${MAIN} \
   planner_ckpt="${PLANNER_CKPT}" \
   policy_ckpt="${POLICY_CKPT}" \
   critic_ckpt="${CRITIC_CKPT}" \
-  +sage_encoder_ckpt="${ENCODER_CKPT}" \
-  +sage_state_stats="${STATE_STATS}" \
-  +sage_ac_ckpt="${AC_CKPT}" \
-  +sage_prefix="${K}" \
-  +sage_keep_p="${KEEP_P}" \
-  +sage_lambda="${LAM}" \
-  +sage_actions_tanh="${SAGE_ACTIONS_TANH}"
+  invdyn_ckpt="${INVDYN_CKPT}" \
+  sage_enable=true \
+  sage_encoder_ckpt="${ENCODER_CKPT}" \
+  sage_state_stats="${STATE_STATS}" \
+  sage_ac_ckpt="${AC_CKPT}" \
+  sage_prefix="${K}" \
+  sage_keep_p="${KEEP_P}" \
+  sage_lambda="${LAM}" \
+  sage_actions_tanh="${SAGE_ACTIONS_TANH}"

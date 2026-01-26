@@ -197,7 +197,7 @@ def pipeline(args):
     policy.load(save_path + f"policy_ckpt_{args.policy_ckpt}.pt")
     policy.eval()
 
-    # ------------------------ SAGE init (ALWAYS ON) ------------------------
+    # ------------------------ SAGE init ------------------------
     sage_prefix = int(getattr(args, "sage_prefix", 10))
     sage_keep_p = float(getattr(args, "sage_keep_p", 0.8))
     sage_lambda = float(getattr(args, "sage_lambda", 0.1))

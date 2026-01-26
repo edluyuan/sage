@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-# energy.py
 import os
 import math
 import uuid
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import d4rl
 import gym
@@ -13,12 +12,12 @@ import numpy as np
 import torch
 import wandb
 
-# ------------------------ SAGE (JEPA) utils ------------------------
+# ------------------------ SAGE utils ------------------------
 from jepa.utils import Stats, load_stats, Encoder, ACTinyTransformer, compute_latent_stats
 
 def _torch_unnormalize_states(x: torch.Tensor, normalizer: Any) -> torch.Tensor:
     """
-    Best-effort inverse of planner_dataset normalizer, but in torch.
+    Best-effort inverse of planner_dataset normalizer, should work on different D4RL versions.
     Supports:
       - normalizer.unnormalize(x) if it works on torch
       - otherwise uses (mean,std) / (mu,sigma) / (obs_mean,obs_std) attributes
@@ -80,7 +79,6 @@ class SAGEEnergyScorer:
         apply_action_stats: bool = True,
         dataset_actions_np: Optional[np.ndarray] = None,
         dataset_obs_np: Optional[np.ndarray] = None,
-        # ---- NEW: state representation bridge ----
         input_state_normalizer: Optional[Any] = None,
         input_states_are_normalized: bool = True,
     ):
@@ -92,7 +90,6 @@ class SAGEEnergyScorer:
         self.apply_state_stats = apply_state_stats
         self.apply_action_stats = apply_action_stats
 
-        # NEW
         self.input_state_normalizer = input_state_normalizer
         self.input_states_are_normalized = bool(input_states_are_normalized)
 
@@ -147,7 +144,7 @@ class SAGEEnergyScorer:
         for p in self.predictor.parameters():
             p.requires_grad_(False)
 
-        # ---- latent whitening (match ac.py) ----
+        # ---- latent whitening (should match your ac.py) ----
         self.latent_whiten = bool(self.ac_args.get("latent_whiten", True))
         if self.latent_whiten:
             assert dataset_obs_np is not None, "Need dataset_obs_np to compute latent whitening stats"
@@ -158,8 +155,7 @@ class SAGEEnergyScorer:
             self.z_mu = torch.zeros(embed_dim, device=device)
             self.z_std = torch.ones(embed_dim, device=device)
 
-        # ---- action whitening (match ac.py) ----
-        # IMPORTANT FIX:
+        # ---- action whitening (should match your ac.py) ----
         # stats must be computed in the same action space used to feed predictor.
         # If actions_tanh=True, predictor sees tanh(atanh(a)) -> [-1,1], so whiten on tanh(actions_np).
         self.action_whiten = bool(self.ac_args.get("action_whiten", True))
@@ -202,7 +198,6 @@ class SAGEEnergyScorer:
         else:
             s = states_override[:, : K + 1, :obs_dim]
 
-        # ---- CENTRAL FIX: unnormalize planner-space -> raw-space (if configured) ----
         norm_flag = self.input_states_are_normalized if states_are_normalized is None else bool(states_are_normalized)
         if norm_flag and (self.input_state_normalizer is not None):
             s = _torch_unnormalize_states(s, self.input_state_normalizer)
@@ -332,6 +327,6 @@ def _infer_prefix_actions_for_state_only_plans(
         )
         return a_hat.view(B, K, act_dim)
 
-    assert invdyn is not None, "Need either diffusion policy or deterministic invdyn to infer actions."
+    assert invdyn is not None, "Need a policy model to infer actions."
     a_hat = invdyn.predict(cond[:, :obs_dim], cond[:, obs_dim:])  # typically predict(s, s_next)
     return a_hat.view(B, K, act_dim)
