@@ -1,5 +1,5 @@
 # SAGE
-### Improving Diffusion Planners by Self-Supervised Action Gating with Energies
+### Improving Diffusion Planners by Self-Supervised Action Gating with Energies (ICML2026)
 
 SAGE is an inference-time gating method for diffusion planners. It learns a feasibility-style energy from offline data (via JEPA-style representation learning + an action-conditioned predictor), and uses that energy to filter and re-rank candidate trajectories sampled by a base diffusion planner.
 
