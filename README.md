@@ -1,4 +1,16 @@
-# SAGE
+<pre>
+_____/\\\\\\\\\\\_______/\\\\\\\\\________/\\\\\\\\\\\\__/\\\\\\\\\\\\\\\_        
+ ___/\\\/////////\\\___/\\\\\\\\\\\\\____/\\\//////////__\/\\\///////////__       
+  __\//\\\______\///___/\\\/////////\\\__/\\\_____________\/\\\_____________      
+   ___\////\\\_________\/\\\_______\/\\\_\/\\\____/\\\\\\\_\/\\\\\\\\\\\_____     
+    ______\////\\\______\/\\\\\\\\\\\\\\\_\/\\\___\/////\\\_\/\\\///////______    
+     _________\////\\\___\/\\\/////////\\\_\/\\\_______\/\\\_\/\\\_____________   
+      __/\\\______\//\\\__\/\\\_______\/\\\_\/\\\_______\/\\\_\/\\\_____________  
+       _\///\\\\\\\\\\\/___\/\\\_______\/\\\_\//\\\\\\\\\\\\/__\/\\\\\\\\\\\\\\\_ 
+        ___\///////////_____\///________\///___\////////////____\///////////////__                                                                     
+</pre>
+                                        
+                                        
 ### [Improving Diffusion Planners by Self-Supervised Action Gating with Energies (ICML2026)](https://arxiv.org/abs/2603.02650)
 
 SAGE is an inference-time gating method for diffusion planners. It learns a feasibility-style energy from offline data (via JEPA-style representation learning + an action-conditioned predictor), and uses that energy to filter and re-rank candidate trajectories sampled by a base diffusion planner.
